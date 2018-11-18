@@ -1,0 +1,74 @@
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html {
+  font-size: 10px; // 1.6rem = 16px
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 1.6rem;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  background: #545454;
+  color: tan;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.main-content {
+  padding: 1em;
+}
+
+.lists {
+  display: flex;
+  flex-flow: row wrap;
+  margin: 0;
+}
+
+.list-wrap {
+  min-width: 20rem;
+  // border: 1px solid tan;
+  &:not(:last-child) {
+    margin-right: 1em;
+    margin-bottom: 1em;
+  }
+}
+
+.list-title {
+  margin-top: 0;
+  text-align: center;
+}
+
+.card-wrap {
+  margin: 0.5em;
+  padding: 0.5em;
+  background: #444444;
+}
+
+.modal-outer {
+  z-index: 1000;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-inner {
+  padding: 1em;
+  border-radius: 0.5em;
+  background: #fff;
+}
