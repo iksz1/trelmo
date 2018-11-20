@@ -1,4 +1,3 @@
-import Array
 import Task
 import Browser
 import Browser.Dom as Dom
@@ -6,7 +5,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
-import Json.Decode as Json
+import Html.Lazy exposing (lazy, lazy2)
+import Json.Decode as Decode
 
 
 main =
@@ -125,17 +125,15 @@ update msg model =
       )
 
     UpdateList id ->
-      ( { model
-        | lists =
-            List.map
-              (\l ->
-                if l.id == id then
-                  { l | text = model.inputValue }
-                else
-                  l
-              )
-              model.lists
-        }
+      let
+        updateList : TheList -> TheList
+        updateList list =
+          if list.id == id then
+            { list | text = model.inputValue }
+          else
+            list
+      in
+      ( { model | lists = List.map updateList model.lists }
       , Cmd.none
       )
 
@@ -155,7 +153,10 @@ update msg model =
     
     CloseModal isAccepted ->
       if isAccepted then
-        update model.onModalAccept { model | isModalOpen = False }
+        if String.isEmpty <| String.trim <| model.inputValue then
+          ( model, Cmd.none )
+        else
+          update model.onModalAccept { model | isModalOpen = False }
       else
         ( { model | isModalOpen = False }
         , Cmd.none
@@ -165,6 +166,7 @@ update msg model =
       ( { model | inputValue = text }
       , Cmd.none
       )
+
 
 
 -- SUBSCRIPTIONS
@@ -179,29 +181,65 @@ subscriptions model =
 -- VIEW
 
 
-viewCard : Int -> TheCard -> ( String, Html Msg )
-viewCard listId card =
-  ( String.fromInt card.id
-  , li
-      [ class "card-wrap"
-      , onDoubleClick (ShowModal card.text (UpdateCard listId card.id))
-      ]
-      [ text card.text
-      , button [ onClick (RemoveCard listId card.id) ] [ text "X" ]
-      ]
-  )
+view : Model -> Html Msg
+view model =
+  div [ class "main-content" ]
+    [ Keyed.ul [ class "lists" ] (List.map viewKeyedList model.lists)
+    , button [ onClick (ShowModal "" AddList) ] [ text "add list" ]
+    , if model.isModalOpen then
+        viewModal model.inputValue ChangeInputValue
+      else
+        text ""
+    ]
 
 
-viewList : TheList -> ( String, Html Msg )
+viewKeyedList : TheList -> ( String, Html Msg )
+viewKeyedList list =
+  ( String.fromInt list.id, lazy viewList list )
+
+
+viewList : TheList -> Html Msg
 viewList list =
-  ( String.fromInt list.id
-  , li [ class "list-wrap" ]
-      [ h3 [ class "list-title", onDoubleClick (ShowModal list.text (UpdateList list.id)) ] [ text list.text ]
-      , button [ onClick (RemoveList list.id) ] [ text "X" ]
-      , Keyed.ul [] (List.map (viewCard list.id) list.cards)
-      , button [ onClick (ShowModal "" (AddCard list.id)) ] [ text "add card" ]
-      ]
-  )
+  li [ class "list-wrap" ]
+    [ h3 [ class "list-title", onDoubleClick (ShowModal list.text (UpdateList list.id)) ] [ text list.text ]
+    , button [ onClick (RemoveList list.id) ] [ text "X" ]
+    , Keyed.ul [] (List.map (viewKeyedCard list.id) list.cards)
+    , button [ onClick (ShowModal "" (AddCard list.id)) ] [ text "add card" ]
+    ]
+
+
+viewKeyedCard : Int -> TheCard -> ( String, Html Msg )
+viewKeyedCard listId card =
+  ( String.fromInt card.id, lazy2 viewCard listId card )
+
+
+viewCard : Int -> TheCard -> Html Msg
+viewCard listId card =
+  li
+    [ class "card-wrap"
+    , onDoubleClick (ShowModal card.text (UpdateCard listId card.id))
+    ]
+    [ text card.text
+    , button [ onClick (RemoveCard listId card.id) ] [ text "X" ]
+    ]
+
+
+viewModal : String -> (String -> Msg) -> Html Msg
+viewModal inputValue inputHandler =
+  div
+    [ class "modal-outer"
+    , onClick (CloseModal False)
+    , onEsc (CloseModal False)
+    ]
+    [ div
+        [ class "modal-inner"
+        , stopPropagationOn "click" (Decode.succeed (DoNothing, True))
+        ]
+        [ viewInput inputValue inputHandler (CloseModal True)
+        , button [ onClick (CloseModal True) ] [ text "OK" ]
+        , button [ onClick (CloseModal False) ] [ text "Cancel" ]
+        ]
+    ]
 
 
 viewInput : String -> (String -> Msg) -> Msg -> Html Msg
@@ -216,53 +254,24 @@ viewInput val msgIn msgEn =
     ]
     []
 
-viewModal : String -> (String -> Msg) -> Html Msg
-viewModal inputValue inputHandler =
-  div
-    [ class "modal-outer"
-    , onClick (CloseModal False)
-    , onEsc (CloseModal False)
-    ]
-    [ div
-        [ class "modal-inner"
-        , stopPropagationOn "click" (Json.succeed (DoNothing, True))
-        ]
-        [ viewInput inputValue inputHandler (CloseModal True)
-        , button [ onClick (CloseModal True) ] [ text "OK" ]
-        , button [ onClick (CloseModal False) ] [ text "Cancel" ]
-        ]
-    ]
-
-onEsc : Msg -> Attribute Msg
-onEsc msg =
-  let
-    isEsc code =
-      if code == 27 then
-        Json.succeed msg
-      else
-        Json.fail "not ENTER"
-  in
-  on "keydown" (Json.andThen isEsc keyCode)
 
 onEnter : Msg -> Attribute Msg
 onEnter msg = 
+  onSpecificKeyDown 13 msg
+
+
+onEsc : Msg -> Attribute Msg
+onEsc msg = 
+  onSpecificKeyDown 27 msg
+
+
+onSpecificKeyDown : Int -> Msg -> Attribute Msg
+onSpecificKeyDown key msg =
   let
-    isEnter code =
-      if code == 13 then
-        Json.succeed msg
+    tagger code =
+      if code == key then
+        Decode.succeed msg
       else
-        Json.fail "not ENTER"
+        Decode.fail "different key"
   in
-  on "keydown" (Json.andThen isEnter keyCode)
-
-
-view : Model -> Html Msg
-view model =
-  div [ class "main-content" ]
-    [ Keyed.ul [ class "lists" ] (List.map viewList model.lists)
-    , button [ onClick (ShowModal "" AddList) ] [ text "add list" ]
-    , if model.isModalOpen then
-        viewModal model.inputValue ChangeInputValue
-      else
-        text ""
-    ]
+  on "keydown" (Decode.andThen tagger keyCode)
