@@ -1,3 +1,5 @@
+port module Main exposing (..)
+
 import Task
 import Browser
 import Browser.Dom as Dom
@@ -6,33 +8,26 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
 import Html.Lazy exposing (lazy, lazy2)
-import Json.Decode as Decode
+import Json.Decode as D
+import Json.Encode as E
+import TheList exposing (..)
+import TheCard exposing (..)
 
 
 main =
   Browser.element
     { init = init
-    , update = update
+    , update = updateWithStorage
     , subscriptions = subscriptions
     , view = view
     }
 
 
+port setStorage : E.Value -> Cmd msg
+
+
 
 -- MODEL
-
-
-type alias TheCard =
-  { id : Int
-  , text : String
-  }
-
-
-type alias TheList =
-  { id : Int
-  , text : String
-  , cards : List TheCard
-  }
 
 
 type alias Model =
@@ -44,9 +39,42 @@ type alias Model =
   }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-  ( Model [] False DoNothing 0 ""
+
+modelDecoder : D.Decoder Model
+modelDecoder =
+  D.map5 Model
+    (D.field "lists" (D.list listDecoder))
+    (D.succeed False)
+    (D.succeed DoNothing)
+    (D.field "uid" D.int)
+    (D.succeed "")
+
+
+modelEncoder : Model -> E.Value
+modelEncoder model =
+  E.object
+    [ ("uid", E.int model.uid)
+    , ("lists", E.list listEncoder model.lists)
+    ]
+
+
+decodeModel : String -> Model
+decodeModel str =
+  let
+    result =
+      D.decodeString modelDecoder str
+  in
+  case result of
+    Ok model ->
+      model
+    Err err ->
+      Model [] False DoNothing 0 ""
+
+
+
+init : Maybe String -> ( Model, Cmd Msg )
+init maybeStr =
+  ( decodeModel (Maybe.withDefault "" maybeStr)
   , Cmd.none
   )
 
@@ -66,6 +94,17 @@ type Msg
   | ChangeInputValue String
   | ShowModal String Msg
   | CloseModal Bool
+
+
+updateWithStorage : Msg -> Model -> ( Model, Cmd Msg )
+updateWithStorage msg model =
+  let
+    ( newModel, cmds ) =
+        update msg model
+  in
+  ( newModel
+  , Cmd.batch [ setStorage (modelEncoder newModel), cmds ]
+  )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -156,7 +195,7 @@ update msg model =
         if String.isEmpty <| String.trim <| model.inputValue then
           ( model, Cmd.none )
         else
-          update model.onModalAccept { model | isModalOpen = False }
+          updateWithStorage model.onModalAccept { model | isModalOpen = False }
       else
         ( { model | isModalOpen = False }
         , Cmd.none
@@ -233,7 +272,7 @@ viewModal inputValue inputHandler =
     ]
     [ div
         [ class "modal-inner"
-        , stopPropagationOn "click" (Decode.succeed (DoNothing, True))
+        , stopPropagationOn "click" (D.succeed (DoNothing, True))
         ]
         [ viewInput inputValue inputHandler (CloseModal True)
         , button [ onClick (CloseModal True) ] [ text "OK" ]
@@ -270,8 +309,8 @@ onSpecificKeyDown key msg =
   let
     tagger code =
       if code == key then
-        Decode.succeed msg
+        D.succeed msg
       else
-        Decode.fail "different key"
+        D.fail "different key"
   in
-  on "keydown" (Decode.andThen tagger keyCode)
+  on "keydown" (D.andThen tagger keyCode)
