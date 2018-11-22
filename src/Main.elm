@@ -224,7 +224,7 @@ view : Model -> Html Msg
 view model =
   div [ class "main-content" ]
     [ Keyed.ul [ class "lists" ] (List.map viewKeyedList model.lists)
-    , button [ onClick (ShowModal "" AddList) ] [ text "add list" ]
+    , button [ class "btn-add big", onClick (ShowModal "" AddList) ] [ text "+" ]
     , if model.isModalOpen then
         viewModal model.inputValue ChangeInputValue
       else
@@ -239,11 +239,15 @@ viewKeyedList list =
 
 viewList : TheList -> Html Msg
 viewList list =
-  li [ class "list-wrap" ]
-    [ h3 [ class "list-title", onDoubleClick (ShowModal list.text (UpdateList list.id)) ] [ text list.text ]
-    , button [ onClick (RemoveList list.id) ] [ text "X" ]
-    , Keyed.ul [] (List.map (viewKeyedCard list.id) list.cards)
-    , button [ onClick (ShowModal "" (AddCard list.id)) ] [ text "add card" ]
+  li [ class "list-wrap box" ]
+    [ div [ class "list-header" ]
+        [ h3 [ class "list-title", onDoubleClick (ShowModal list.text (UpdateList list.id)) ] [ text list.text ]
+        , button [ class "btn-del", onClick (RemoveList list.id) ] [ text "✕" ]
+        ]
+    , div [ class "list-content" ]
+        [ Keyed.ul [] (List.map (viewKeyedCard list.id) list.cards)
+        , button [ class "btn-add", onClick (ShowModal "" (AddCard list.id)) ] [ text "+" ]
+        ]
     ]
 
 
@@ -255,11 +259,11 @@ viewKeyedCard listId card =
 viewCard : Int -> TheCard -> Html Msg
 viewCard listId card =
   li
-    [ class "card-wrap"
+    [ class "card-wrap box"
     , onDoubleClick (ShowModal card.text (UpdateCard listId card.id))
     ]
     [ text card.text
-    , button [ onClick (RemoveCard listId card.id) ] [ text "X" ]
+    , button [ class "btn-del", onClick (RemoveCard listId card.id) ] [ text "✕" ]
     ]
 
 
@@ -275,8 +279,7 @@ viewModal inputValue inputHandler =
         , stopPropagationOn "click" (D.succeed (DoNothing, True))
         ]
         [ viewInput inputValue inputHandler (CloseModal True)
-        , button [ onClick (CloseModal True) ] [ text "OK" ]
-        , button [ onClick (CloseModal False) ] [ text "Cancel" ]
+        , button [ class "btn-ok", onClick (CloseModal True) ] [ text "OK" ]
         ]
     ]
 

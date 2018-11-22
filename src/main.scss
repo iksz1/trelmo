@@ -1,3 +1,8 @@
+$bg-main: #e8e8e4;
+$bg-list: antiquewhite;
+$bg-card: #fff;
+$color-main: #5f5f5f;
+
 *,
 *::before,
 *::after {
@@ -15,8 +20,8 @@ body {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  background: #545454;
-  color: tan;
+  background: $bg-main;
+  color: $color-main;
 }
 
 ul {
@@ -25,7 +30,15 @@ ul {
 }
 
 .main-content {
+  display: flex;
+  align-items: flex-start;
+  flex-flow: row wrap;
   padding: 1em;
+}
+
+.box {
+  border-radius: 0.2em;
+  box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1);
 }
 
 .lists {
@@ -35,12 +48,23 @@ ul {
 }
 
 .list-wrap {
-  min-width: 20rem;
-  // border: 1px solid tan;
-  &:not(:last-child) {
-    margin-right: 1em;
-    margin-bottom: 1em;
+  flex: 1;
+  min-width: 25rem;
+  max-width: 25rem;
+  margin: 0.5em;
+  background: $bg-list;
+}
+
+.list-header {
+  position: relative;
+  padding-top: 0.5em;
+  &:hover .btn-del {
+    display: block;
   }
+}
+
+.list-content {
+  padding: 0.5em;
 }
 
 .list-title {
@@ -49,9 +73,13 @@ ul {
 }
 
 .card-wrap {
-  margin: 0.5em;
+  position: relative;
+  margin: 0.5em 0;
   padding: 0.5em;
-  background: #444444;
+  background: $bg-card;
+  &:hover .btn-del {
+    display: block;
+  }
 }
 
 .modal-outer {
@@ -68,7 +96,48 @@ ul {
 }
 
 .modal-inner {
+  display: flex;
   padding: 1em;
-  border-radius: 0.5em;
+  border-radius: 0.25em;
   background: #fff;
+}
+
+.btn-del {
+  display: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: transparent;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: inherit;
+  border: none;
+  &:hover {
+    background: indianred;
+    color: #fff;
+  }
+}
+
+.btn-add {
+  background: transparent;
+  color: inherit;
+  border: none;
+  font-size: 2rem;
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+}
+
+.btn-ok {
+  background: $bg-main;
+  border: 1px solid #a9a9a9;
+  border-left: none;
+}
+
+.big {
+  font-size: 4rem;
+}
+
+#modal-input {
+  border: 1px solid #a9a9a9;
 }
