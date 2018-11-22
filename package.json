@@ -4,7 +4,7 @@
   "scripts": {
     "start": "webpack-dev-server --mode development --hot --open",
     "build": "webpack --mode production",
-    "prebuild": "rimraf build"
+    "clean": "rimraf build"
   },
   "devDependencies": {
     "autoprefixer": "^9.3.1",
